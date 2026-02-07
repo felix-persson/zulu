@@ -1,6 +1,6 @@
 include config.mk
 
-SRC = parser.tab.o lex.yy.c zulu.c
+SRC = parser.tab.o lex.yy.c zulu.c node.c util.c
 OBJ = ${SRC:%.c=%.o}
 
 all: zulu
@@ -21,4 +21,4 @@ clean:
 	rm -f zulu ${OBJ} *.pdf parser.tab.* lex.yy.c
 
 tree:
-	dot -Tpdf tree.dit -o tree.pdf
+	dot -Tpdf tree.dot -o tree.pdf

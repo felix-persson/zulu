@@ -4,56 +4,242 @@
 #include <stdlib.h>
 #include "node.h"
 
+extern int yylineno;
 extern int yylex(void);
 extern int yyparse(void);
 void yyerror(const char* s);
+node* program;
 
 %}
 
 %union {
-	node* n;
+	bool  b;
 	float f;
 	int   i;
+	node* n;
 	char* s;
 }
 
-%start root
+/* TODO: implement a USE_LEXER_ONLY mode */
 
-%token ADD SUB MUL DIV POW
-%token GEQ LEQ GT LT EQ NEQ AND OR NOT ASSIGN
-%token IF ELSE FOR PRINT READ RETURN BREAK CONTINUE CLASS
-%token L_PAR R_PAR L_BRACKET R_BRACKET L_BRACE R_BRACE
-%token PERIOD COMMA COLON SEMICOLON
-%token VOLATILE
-%token INT_LIT FLOAT_LIT BOOL_LIT STRING_LIT
-%token ID
-%token<i> INT
-%token<f> FLOAT
-%token<i> BOOL
-%token VOID
+%token GEQ LEQ NEQ ASSIGN
+%token PRINT READ RETURN BREAK CONTINUE CLASS MAIN LENGTH IF ELSE FOR
+%token INT_T FLOAT_T BOOL_T
+%token<s> ID INT_L FLOAT_L BOOL_L VOID_T VOLATILE
+%token NL
 
-%type<n> exp val
+%type<s> primitive
+%type<n> program literal type exp exps stmt stmts var vars var_decl var_decls
+%type<n> cond method main block class_decl class_decls class_member
+%type<n> class_members cond_body suffix
+%type<n> for for_arg1 for_arg2
+%type<n> assign
 
-%left ADD SUB
-%left MUL DIV
+%left '|' '&' '<' '>' '=' NEQ LEQ GEQ '+' '-' '*' '/' '^' '!'
 
+%nonassoc _ELSE
+%nonassoc ELSE 
+%token END 0 "end of file"
+
+%start program
 %%
 
-root
-	: exp { }
+program: opt_nl vars opt_nl class_decls opt_nl main END {
+	$$ = make_group(NODE_PROGRAM_GROUP);
+	$$ = group_add($$, $2);
+	$$ = group_add($$, $4);
+	$$ = group_add($$, $6);
+	program = $$;
+	}
+
+
+
+main
+	: MAIN '(' ')' ':' INT_T block { $$ = make_unode(NODE_MAIN, $6, yylineno);}
+	;
+
+class_decls
+	: class_decl { $$ = make_group(NODE_CLASS_GROUP); $$ = group_add($$, $1); }
+	| class_decls class_decl { $$ = group_add($$, $2); }
+	;
+
+class_decl
+	: CLASS ID '{' NL class_members '}' NL {
+		$$ = make_class_node($5, $2, yylineno); }
+	;
+
+class_members
+	: class_member { $$ = make_group(NODE_MEMBERS); $$ = group_add($$, $1); }
+	| class_members class_member { $$ = group_add($$, $2); }
+	;
+
+class_member
+	: method
+	| var NL
+	;
+
+method
+	: ID '(' var_decls ')' ':' type block {
+		$$ = make_group(NODE_METHOD);
+		$$ = group_add($$, $3);
+		$$ = group_add($$, $6);
+		$$ = group_add($$, $7); }
+	| ID '('  ')' ':' type block {
+		$$ = make_group(NODE_METHOD);
+		$$ = group_add($$, $5);
+		$$ = group_add($$, $6); }
+	;
+
+block
+	: '{' NL stmts '}' NL { $$ = $3; }
+	;
+
+stmts
+	: stmt { $$ = make_group(NODE_STMT_GROUP); $$ = group_add($$, $1); }
+	| stmts stmt { $$ = group_add($$, $2); }
+	;
+
+stmt
+	: PRINT '(' exp ')' NL { $$ = make_unode(NODE_PRINT, $3, yylineno); }
+	| READ '(' exp ')' NL { $$ = make_unode(NODE_READ, $3, yylineno); }
+	| RETURN exp NL { $$ = make_unode(NODE_RETURN, $2, yylineno); }
+	| BREAK NL { $$ = make_unode(NODE_BREAK, NULL, yylineno); }
+	| CONTINUE NL { $$ = make_unode(NODE_CONTINUE, NULL, yylineno); }
+	| exp ASSIGN exp NL { $$ = make_bnode(NODE_ASSIGN, $1, $3, yylineno); }
+	| exp NL
+	| var NL
+	| var
+	| cond
+	| for
+	;
+
+for
+	: FOR '(' for_arg1 ',' for_arg2 ',' assign ')' block {
+		$$ = make_for_node($3, $5, $7, $9, yylineno); }
+	| FOR '(' for_arg1 ',' for_arg2 ',' assign ')' stmt {
+		$$ = make_for_node($3, $5, $7, $9, yylineno); }
+	;
+
+for_arg1
+	: { $$ = NULL; }
+	| var
+	| assign
+	;
+
+for_arg2
+	: { $$ = NULL; }
+	| exp
+	;
+	
+cond
+	: IF '(' exp ')' cond_body %prec _ELSE
+		{ $$ = make_if_node($3, $5, NULL, yylineno); }
+	| IF '(' exp ')' cond_body ELSE cond_body
+		{ $$ = make_if_node($3, $5, $7, yylineno); }
+	;
+
+cond_body
+	: stmt
+	| block
+	;
+
+vars
+	: var NL { $$ = make_group(NODE_VAR_GROUP); $$ = group_add($$, $1); }
+	| vars var NL { $$ = group_add($$, $2); }
+	;
+
+var
+	: VOLATILE ID ':' type { $$ = make_var_node($4, $2, yylineno); }
+	| VOLATILE ID ':' type ASSIGN exp
+		{ $$ = make_bnode(NODE_ASSIGN, make_var_node($4, $2, yylineno), $6,
+		yylineno); }
+	| ID ':' type { $$ = make_var_node($3, $1, yylineno); }
+	| ID ':' type ASSIGN exp
+		{ $$ = make_bnode(NODE_ASSIGN, make_var_node($3, $1, yylineno), $5,
+		yylineno); }
+	;
+
+var_decls
+	: var_decl { $$ = make_group(NODE_PARAM_GROUP); $$ = group_add($$, $1); }
+	| var_decls ',' var_decl { $$ = group_add($$, $3); }
+	;
+
+var_decl
+	: ID ':' type { $$ = make_var_node($3, $1, yylineno); }
+	;
+
+assign
+	: exp ASSIGN exp { $$ = make_bnode(NODE_ASSIGN, $1, $3, yylineno); }
+	;
+
+exps
+	: exp { $$ = make_group(NODE_GROUP); $$ = group_add($$, $1); }
+	| exps ',' exp { $$ = group_add($$, $3); }
 	;
 
 exp
-	: val { $$ = $1; }
+	: exp '&' exp { $$ = make_bnode(NODE_AND, $1, $3, yylineno); }
+	| exp '|' exp { $$ = make_bnode(NODE_OR, $1, $3, yylineno); }
+	| exp '<' exp { $$ = make_bnode(NODE_LT, $1, $3, yylineno); }
+	| exp '>' exp { $$ = make_bnode(NODE_GT, $1, $3, yylineno); }
+	| exp LEQ exp { $$ = make_bnode(NODE_LEQ, $1, $3, yylineno); }
+	| exp GEQ exp { $$ = make_bnode(NODE_GEQ, $1, $3, yylineno); }
+	| exp '=' exp { $$ = make_bnode(NODE_EQ, $1, $3, yylineno); }
+	| exp NEQ exp { $$ = make_bnode(NODE_NEQ, $1, $3, yylineno); }
+	| exp '+' exp { $$ = make_bnode(NODE_ADD, $1, $3, yylineno); }
+	| exp '-' exp { $$ = make_bnode(NODE_SUB, $1, $3, yylineno); }
+	| exp '*' exp { $$ = make_bnode(NODE_MUL, $1, $3, yylineno); }
+	| exp '/' exp { $$ = make_bnode(NODE_DIV, $1, $3, yylineno); }
+	| exp '^' exp { $$ = make_bnode(NODE_POW, $1, $3, yylineno); }
+	| suffix
+	| '!' exp { $$ = make_unode(NODE_NOT, $2, yylineno); }
+	//| '(' exp ')' { $$ = $2; }
 	;
 
-val
-	: INT_LIT { }
+suffix
+	: literal
+	| suffix '.' LENGTH { $$ = make_unode(NODE_LENGTH, $1, yylineno); }
+	| suffix '(' exps ')'
+		{ $$ = make_call_node($1, $3, yylineno);
+		  $3->node_type = NODE_ARG_GROUP; }
+	| suffix '(' ')' { $$ = make_call_node($1, NULL, yylineno); }
+	| suffix '.' ID
+		{ node* _v = make_value_node(NODE_ID, $3, yylineno);
+		  $$ = make_bnode(NODE_DOT, $1, _v, yylineno); }
+	| suffix '[' exps ']'
+		{ $$ = make_bnode(NODE_ARRAY_INDEX, $1, $3, yylineno); }
+	;
+
+
+type
+	: ID { $$ = make_type_node(NODE_TYPE, $1, yylineno); }
+	| VOID_T { $$ = make_type_node(NODE_VOID, $1, yylineno); }
+	| primitive { $$ = make_type_node(NODE_TYPE, $1, yylineno); }
+	| primitive '[' ']'
+		{ $$ = make_type_node(NODE_TYPE, $1, yylineno); $$->is_array = true; }
+	;
+
+primitive
+	: INT_T { $$ = "INT_T"; }
+	| FLOAT_T { $$ = "FLOAT_T"; }
+	| BOOL_T { $$ = "BOOL_T"; }
+	;
+
+literal
+	: INT_L { $$ = make_value_node(NODE_INT, $1, yylineno); }
+	| FLOAT_L { $$ = make_value_node(NODE_FLOAT, $1, yylineno); }
+	| BOOL_L { $$ = make_value_node(NODE_BOOL, $1, yylineno); }
+	| ID { $$ = make_value_node(NODE_ID, $1, yylineno); }
+	;
+
+opt_nl
+	: NL
+	| /* empty */
 	;
 
 %%
 
 void yyerror(const char* s) {
-	fprintf(stderr, "Parse error: %s\n", s);
+	fprintf(stderr, "Parse error at l. %d: %s\n", yylineno, s);
 	exit(1);
 }
