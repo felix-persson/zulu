@@ -35,7 +35,16 @@ node* program;
 %type<n> for for_arg1 for_arg2
 %type<n> assign
 
-%left '|' '&' '<' '>' '=' NEQ LEQ GEQ '+' '-' '*' '/' '^' '!'
+%right ASSIGN
+%left '|'
+%left '&'
+%left '<' '>' LEQ GEQ
+%left '=' NEQ
+%left '+' '-'
+%left '*' '/'
+%left '^'
+%left '!'
+%left '.' '[' ']'
 
 %nonassoc _ELSE
 %nonassoc ELSE 
