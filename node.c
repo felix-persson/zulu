@@ -120,7 +120,7 @@ make_var_node(node* type, char* value, int line)
 
 
 node*
-make_value_node(node_t type, char* value, int line)
+make_vnode(node_t type, char* value, int line)
 {
     node* new = malloc(sizeof(node));
     if(!new) {
@@ -284,6 +284,7 @@ get_type(node_t t)
 	case NODE_LENGTH:		return "LENGTH";
 	case NODE_ARRAY:		return "ARRAY";
 	case NODE_ARRAY_INDEX:	return "ARRAY_INDEX";
+	case NODE_POSTFIX:		return "ARRAY_INDEX";
 	case NODE_ARG_GROUP:	return "ARG_GROUP";
 	default:				return "?";
 	}

@@ -56,6 +56,7 @@ typedef enum {
 	NODE_ARRAY,
 	NODE_ARRAY_INDEX,
 	NODE_ARG_GROUP,
+	NODE_POSTFIX,
 } node_t;
 
 typedef struct node node;
@@ -72,7 +73,7 @@ struct node {
 node* make_group(node_t);
 node* group_add(node*, node*);
 
-node* make_value_node(node_t, char*, int);
+node* make_vnode(node_t, char*, int);
 node* make_bnode(node_t, node*, node*, int);
 node* make_unode(node_t, node*, int);
 node* make_var_node(node*, char*, int);
