@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <string.h>
 #include "node.h"
 #include "util.h"
@@ -19,19 +16,22 @@ make_group(node_t type)
 
 	l->capacity = start_size;
 	l->count = 0;
-    l->node_type = type;
+    l->type = type;
 
     return l;
 }
 
 
-/* group_add returns the same list node in case of reallocation. */
 node*
 group_add(node* l, node* child)
 {
 	if (l->count == l->capacity) {
 		l->capacity *= 2;
 		l = realloc(l, sizeof(*l) + l->capacity * sizeof(l->children[0]));
+		if (!l) {
+			perror("Error when creating node");
+			exit(1);
+		}
 	}
 	l->children[l->count++] = child;
 
@@ -48,7 +48,7 @@ make_type_node(node_t type, char* value, int line)
         exit(1);
     }
 
-    new->node_type = NODE_TYPE;
+    new->type = type;
 	new->line = line;
     new->value = strdup(value);
 
@@ -60,9 +60,9 @@ _eval_node(node* n, int* count, FILE* f)
 {
 	n->id = (*count)++;
 	if (n->value == NULL)
-		fprintf(f, "n%d [label=\"%s\"];\n", n->id, get_type(n->node_type));
+		fprintf(f, "n%d [label=\"%s\"];\n", n->id, get_type(n->type));
 	else
-		fprintf(f, "n%d [label=\"%s:%s\"];\n", n->id, get_type(n->node_type), n->value);
+		fprintf(f, "n%d [label=\"%s:%s\"];\n", n->id, get_type(n->type), n->value);
 
 	for (int i = 0; i < n->count; ++i) {
 		if (n->children[i] != NULL) {
@@ -92,8 +92,8 @@ make_class_node(node* members, char* name, int line)
         perror("Error when creating node");
         exit(1);
     }
-    new->node_type = NODE_CLASS;
-	new->value = name;
+    new->type = NODE_CLASS;
+	new->value = strdup(name);
 	new->line = line;
 	new->capacity = child_count;
 	new->count = child_count;
@@ -104,16 +104,20 @@ make_class_node(node* members, char* name, int line)
 node*
 make_var_node(node* type, char* value, int line)
 {
-    node* new = malloc(sizeof(node));
+	size_t child_count = 1;
+    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
+
     if(!new) {
         perror("Error when creating node");
         exit(1);
     }
 
-    new->node_type = NODE_VAR;
+    new->type = NODE_VAR;
+	new->children[0] = type;
 	new->line = line;
     new->value = strdup(value);
-	new->capacity = 0;
+	new->capacity = child_count;
+	new->count = child_count;
 
     return new;
 }
@@ -127,10 +131,13 @@ make_vnode(node_t type, char* value, int line)
         perror("Error when creating node");
         exit(1);
     }
-    new->node_type = type;
+    new->type = type;
 	new->line = line;
+	new->id = 0;
     new->value = strdup(value);
+	new->is_array = false;
 	new->capacity = 0;
+	new->count = 0;
 
     return new;
 }
@@ -145,8 +152,11 @@ make_bnode(node_t type, node* lhs, node* rhs, int line)
         perror("Error when creating node");
         exit(1);
     }
-    new->node_type = type;
+    new->type = type;
 	new->line = line;
+	new->id = 0;
+	new->value = NULL;
+	new->is_array = false;
 	new->capacity = child_count;
 	new->count = child_count;
 	new->children[0] = lhs;
@@ -165,8 +175,11 @@ make_unode(node_t type, node* operand, int line)
         perror("Error when creating node");
         exit(1);
     }
-    new->node_type = type;
+    new->type = type;
 	new->line = line;
+	new->id = 0;
+	new->value = NULL;
+	new->is_array = false;
 	new->capacity = child_count;
 	new->count = child_count;
 	new->children[0] = operand;
@@ -175,7 +188,7 @@ make_unode(node_t type, node* operand, int line)
 }
 
 node*
-make_if_node(node* cond, node* block, node* _else, int line)
+make_if_node(node* _if, node* block, node* _else, int line)
 {
 	size_t child_count = 3;
     node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
@@ -184,13 +197,16 @@ make_if_node(node* cond, node* block, node* _else, int line)
         perror("Error when creating node");
         exit(1);
     }
-    new->node_type = NODE_IF;
+    new->type = NODE_IF;
 	new->line = line;
+	new->id = 0;
+	new->value = NULL;
+	new->is_array = false;
 	new->capacity = child_count;
 	new->count = child_count;
-	new->children[0] = cond;
+	new->children[0] = _if;
 	new->children[1] = block;
-	new->children[2] = _else == NULL ? NULL : _else;
+	new->children[2] = _else;
 
     return new;
 }
@@ -205,8 +221,11 @@ make_for_node(node* init, node* cond, node* change, node* stmts, int line)
         perror("Error when creating node");
         exit(1);
     }
-    new->node_type = NODE_FOR;
+    new->type= NODE_FOR;
 	new->line = line;
+	new->id = 0;
+	new->value = NULL;
+	new->is_array = false;
 	new->capacity = child_count;
 	new->count = child_count;
 	new->children[0] = init;
@@ -227,8 +246,11 @@ make_call_node(node* call_node, node* args, int line)
         perror("Error when creating node");
         exit(1);
     }
-    new->node_type = NODE_CALL;
+    new->type = NODE_CALL;
 	new->line = line;
+	new->id = 0;
+	new->value = NULL;
+	new->is_array = false;
 	new->capacity = child_count;
 	new->count = child_count;
 	new->children[0] = call_node;
@@ -241,7 +263,7 @@ char*
 get_type(node_t t)
 {
 	switch (t) {
-	case NODE_TYPE: 		return "TYPE"; puts("!");
+	case NODE_TYPE: 		return "TYPE";
 	case NODE_INT:			return "INT";
 	case NODE_FLOAT:		return "FLOAT";
 	case NODE_BOOL:			return "BOOLEAN";
@@ -284,7 +306,7 @@ get_type(node_t t)
 	case NODE_LENGTH:		return "LENGTH";
 	case NODE_ARRAY:		return "ARRAY";
 	case NODE_ARRAY_INDEX:	return "ARRAY_INDEX";
-	case NODE_POSTFIX:		return "ARRAY_INDEX";
+	case NODE_POSTFIX:		return "POSTFIX";
 	case NODE_ARG_GROUP:	return "ARG_GROUP";
 	default:				return "?";
 	}

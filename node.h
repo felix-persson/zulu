@@ -2,6 +2,8 @@
 #define NODE_H
 
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define LIST_BUFFER_SIZE 64
 
@@ -62,7 +64,7 @@ typedef enum {
 typedef struct node node;
 
 struct node {
-	node_t node_type;
+	node_t type;
 	int line, id;
 	char* value;
 	bool is_array;

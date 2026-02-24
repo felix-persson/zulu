@@ -199,7 +199,7 @@ literal
 postfix
 	: literal
 	| postfix '.' LENGTH { $$ = make_unode(NODE_LENGTH, $1, yylineno); }
-	| postfix '(' exps ')' { $$ = make_call_node($1, $3, yylineno); $3->node_type = NODE_ARG_GROUP; }
+	| postfix '(' exps ')' { $$ = make_call_node($1, $3, yylineno); $3->type = NODE_ARG_GROUP; }
 	| postfix '(' ')' { $$ = make_call_node($1, NULL, yylineno); }
 	| postfix '.' ID { node* _v = make_vnode(NODE_ID, $3, yylineno); $$ = make_bnode(NODE_DOT, $1, _v, yylineno); }
 	| postfix '[' exps ']' { $$ = make_bnode(NODE_ARRAY_INDEX, $1, $3, yylineno); }
