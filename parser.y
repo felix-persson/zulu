@@ -120,8 +120,7 @@ stmt
 	;
 
 for
-	: FOR '(' for_arg1 ',' for_arg2 ',' assign ')' cond_body
-		{ $$ = make_for_node($3, $5, $7, $9, yylineno); }
+	: FOR '(' for_arg1 ',' for_arg2 ',' assign ')' cond_body { $$ = make_for_node($3, $5, $7, $9, yylineno); }
 	;
 
 for_arg1
@@ -185,7 +184,7 @@ exp
 	| exp '*' exp { $$ = make_bnode(NODE_MUL, $1, $3, yylineno); }
 	| exp '/' exp { $$ = make_bnode(NODE_DIV, $1, $3, yylineno); }
 	| exp '^' exp { $$ = make_bnode(NODE_POW, $1, $3, yylineno); }
-	| '!' exp     { $$ = make_unode(NODE_NOT, $2, yylineno); }
+	| '!' exp { $$ = make_unode(NODE_NOT, $2, yylineno); }
 	| '(' exp ')' { $$ = $2; }
 	| ID '[' exps ']' { node* _v = make_vnode(NODE_ID, $1, yylineno); _v->is_array = true; $$ = make_bnode(NODE_ARRAY_INDEX, _v, $3, yylineno); }
 	| primitive '[' exps ']' { node* _v = make_type_node(NODE_TYPE, $1, yylineno); _v->is_array = true; $$ = make_bnode(NODE_ARRAY_INDEX, _v, $3, yylineno); }
@@ -193,10 +192,10 @@ exp
 	;
 
 literal
-	: INT_L   { $$ = make_vnode(NODE_INT,   $1, yylineno); }
+	: INT_L { $$ = make_vnode(NODE_INT, $1, yylineno); }
 	| FLOAT_L { $$ = make_vnode(NODE_FLOAT, $1, yylineno); }
-	| BOOL_L  { $$ = make_vnode(NODE_BOOL,  $1, yylineno); }
-	| ID      { $$ = make_vnode(NODE_ID,    $1, yylineno); }
+	| BOOL_L { $$ = make_vnode(NODE_BOOL, $1, yylineno); }
+	| ID { $$ = make_vnode(NODE_ID, $1, yylineno); }
 	;
 
 postfix

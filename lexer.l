@@ -10,8 +10,9 @@
 
 %%
 
-^[[:space:]]*\r?\n { }
+^[[:space:]]*\r?\n { /* empty lines; ignore */ }
 "//"[^\n]*	{ /* comments; ignore */ }
+
 	/* line termination */
 \n+		return NL;
 
