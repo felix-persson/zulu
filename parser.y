@@ -51,7 +51,7 @@ node* program;
 %%
 
 program
-	: vars_opt class_decls_opt main NL END { $$ = make_group(NODE_PROGRAM_GROUP); $$ = group_add($$, $1); $$ = group_add($$, $2); $$ = group_add($$, $3); program = $$; }
+	: vars_opt class_decls_opt main END { $$ = make_group(NODE_PROGRAM_GROUP); $$ = group_add($$, $1); $$ = group_add($$, $2); $$ = group_add($$, $3); program = $$; }
 	;
 
 main
@@ -65,11 +65,11 @@ vars_opt
 
 class_decls_opt
 	: /* empty */ { $$ = make_group(NODE_CLASS_GROUP); }
-	| class_decls_opt class_decl NL { $$ = group_add($1, $2); }
+	| class_decls_opt class_decl { $$ = group_add($1, $2); }
 	;
 
 class_decl
-	: CLASS ID '{' NL class_members_opt '}' { $$ = make_class_node($5, $2, yylineno); }
+	: CLASS ID '{' NL class_members_opt '}' NL { $$ = make_class_node($5, $2, yylineno); }
 	;
 
 class_members_opt
@@ -78,12 +78,12 @@ class_members_opt
 	;
 
 class_members
-	: class_member NL { $$ = make_group(NODE_MEMBERS); $$ = group_add($$, $1); }
-	| class_members class_member NL { $$ = group_add($1, $2); }
+	: class_member { $$ = make_group(NODE_MEMBERS); $$ = group_add($$, $1); }
+	| class_members class_member { $$ = group_add($1, $2); }
 	;
 
 class_member
-	: var
+	: var NL
 	| method
 	;
 
@@ -97,7 +97,7 @@ var_decls_opt
 	;
 
 block
-	: '{' NL stmts '}' { $$ = $3; }
+	: '{' NL stmts '}' NL { $$ = $3; }
 	;
 
 stmts
@@ -107,21 +107,20 @@ stmts
 	;
 
 stmt
-	: block
-	| PRINT '(' exp ')' NL { $$ = make_unode(NODE_PRINT, $3, yylineno); }
+	: PRINT '(' exp ')' NL { $$ = make_unode(NODE_PRINT, $3, yylineno); }
 	| READ '(' exp ')' NL { $$ = make_unode(NODE_READ, $3, yylineno); }
 	| RETURN exp NL { $$ = make_unode(NODE_RETURN, $2, yylineno); }
 	| BREAK NL { $$ = make_unode(NODE_BREAK, NULL, yylineno); }
 	| CONTINUE NL { $$ = make_unode(NODE_CONTINUE, NULL, yylineno); }
 	| exp ASSIGN exp NL { $$ = make_bnode(NODE_ASSIGN, $1, $3, yylineno); }
-	| exp NL
-	| var NL
+	| exp NL { $$ = $1; }
+	| var NL { $$ = $1; }
 	| cond
 	| for
 	;
 
 for
-	: FOR '(' for_arg1 ',' for_arg2 ',' assign ')' stmt
+	: FOR '(' for_arg1 ',' for_arg2 ',' assign ')' cond_body
 		{ $$ = make_for_node($3, $5, $7, $9, yylineno); }
 	;
 
@@ -143,6 +142,8 @@ cond
 
 cond_body
 	: stmt
+	| NL stmt { $$ = $2; }
+	| block
 	;
 
 var
@@ -185,8 +186,10 @@ exp
 	| exp '/' exp { $$ = make_bnode(NODE_DIV, $1, $3, yylineno); }
 	| exp '^' exp { $$ = make_bnode(NODE_POW, $1, $3, yylineno); }
 	| '!' exp     { $$ = make_unode(NODE_NOT, $2, yylineno); }
-	| postfix
 	| '(' exp ')' { $$ = $2; }
+	| ID '[' exps ']' { node* _v = make_vnode(NODE_ID, $1, yylineno); _v->is_array = true; $$ = make_bnode(NODE_ARRAY_INDEX, _v, $3, yylineno); }
+	| primitive '[' exps ']' { node* _v = make_type_node(NODE_TYPE, $1, yylineno); _v->is_array = true; $$ = make_bnode(NODE_ARRAY_INDEX, _v, $3, yylineno); }
+	| postfix
 	;
 
 literal
@@ -202,7 +205,6 @@ postfix
 	| postfix '(' exps ')' { $$ = make_call_node($1, $3, yylineno); $3->type = NODE_ARG_GROUP; }
 	| postfix '(' ')' { $$ = make_call_node($1, NULL, yylineno); }
 	| postfix '.' ID { node* _v = make_vnode(NODE_ID, $3, yylineno); $$ = make_bnode(NODE_DOT, $1, _v, yylineno); }
-	| postfix '[' exps ']' { $$ = make_bnode(NODE_ARRAY_INDEX, $1, $3, yylineno); }
 	;
 
 type

@@ -9,6 +9,8 @@
 %option never-interactive
 
 %%
+
+^[[:space:]]*\r?\n { }
 "//"[^\n]*	{ /* comments; ignore */ }
 	/* line termination */
 \n+		return NL;

@@ -8,7 +8,6 @@
 #define LIST_BUFFER_SIZE 64
 
 typedef enum {
-	NODE_UNINIT,
 	NODE_TYPE,
 	NODE_INT,
 	NODE_FLOAT,

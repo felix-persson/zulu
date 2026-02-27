@@ -59,10 +59,17 @@ static void
 _eval_node(node* n, int* count, FILE* f)
 {
 	n->id = (*count)++;
-	if (n->value == NULL)
+	if (n->value == NULL) {
 		fprintf(f, "n%d [label=\"%s\"];\n", n->id, get_type(n->type));
-	else
-		fprintf(f, "n%d [label=\"%s:%s\"];\n", n->id, get_type(n->type), n->value);
+	}
+	else {
+		if (n->is_array) {
+			fprintf(f, "n%d [label=\"ARRAY_%s:%s\"];\n", n->id, get_type(n->type), n->value);
+		}
+		else {
+			fprintf(f, "n%d [label=\"%s:%s\"];\n", n->id, get_type(n->type), n->value);
+		}
+	}
 
 	for (int i = 0; i < n->count; ++i) {
 		if (n->children[i] != NULL) {
@@ -263,52 +270,57 @@ char*
 get_type(node_t t)
 {
 	switch (t) {
-	case NODE_TYPE: 		return "TYPE";
-	case NODE_INT:			return "INT";
-	case NODE_FLOAT:		return "FLOAT";
-	case NODE_BOOL:			return "BOOLEAN";
-	case NODE_ID:			return "ID";
-	case NODE_ADD:			return "ADD";
-	case NODE_SUB:			return "SUB";
-	case NODE_MUL:			return "MUL";
-	case NODE_DIV:			return "DIV";
-	case NODE_POW:			return "POW";
-	case NODE_GT:			return "GT";
-	case NODE_LT:			return "LT";
-	case NODE_GEQ:			return "GEQ";
-	case NODE_LEQ:			return "LEQ";
-	case NODE_EQ:			return "EQ";
-	case NODE_AND:			return "AND";
-	case NODE_OR:			return "OR";
-	case NODE_VAR:			return "VAR";
-	case NODE_ASSIGN:		return "ASSIGN";
-	case NODE_NOT:			return "NOT";
-	case NODE_PRINT:		return "PRINT";
-	case NODE_READ:			return "READ";
-	case NODE_RETURN:		return "RETURN";
-	case NODE_GROUP:		return "GROUP";
-	case NODE_COND:			return "COND";
-	case NODE_METHOD:		return "METHOD";
-	case NODE_METHOD_GROUP:	return "METHOD_GROUP";
-	case NODE_METHOD_BODY:	return "METHOD_BODY";
-	case NODE_MEMBERS: 		return "MEMBERS";
-	case NODE_MAIN: 		return "MAIN";
-	case NODE_CLASS: 		return "CLASS";
-	case NODE_CLASS_GROUP: 	return "CLASS_GROUP";
-	case NODE_STMT_GROUP: 	return "STMT_GROUP";
-	case NODE_PROGRAM_GROUP: return "PROGRAM_GROUP";
-	case NODE_VAR_GROUP: 	return "VAR_GROUP";
-	case NODE_PARAM_GROUP: 	return "PARAM_GROUP";
-	case NODE_FOR: 			return "FOR_LOOP";
-	case NODE_IF:			return "COND_IF";
-	case NODE_CALL:			return "CALL";
-	case NODE_DOT:			return "DOT";
-	case NODE_LENGTH:		return "LENGTH";
-	case NODE_ARRAY:		return "ARRAY";
-	case NODE_ARRAY_INDEX:	return "ARRAY_INDEX";
-	case NODE_POSTFIX:		return "POSTFIX";
-	case NODE_ARG_GROUP:	return "ARG_GROUP";
-	default:				return "?";
+	case NODE_TYPE:				return "TYPE";
+	case NODE_INT:				return "INT";
+	case NODE_FLOAT:			return "FLOAT";
+	case NODE_BOOL:				return "BOOL";
+	case NODE_ID:				return "ID";
+	case NODE_ADD:				return "ADD";
+	case NODE_SUB:				return "SUB";
+	case NODE_MUL:				return "MUL";
+	case NODE_DIV:				return "DIV";
+	case NODE_POW:				return "POW";
+	case NODE_GT:				return "GT";
+	case NODE_LT:				return "LT";
+	case NODE_GEQ:				return "GEQ";
+	case NODE_LEQ:				return "LEQ";
+	case NODE_EQ:				return "EQ";
+	case NODE_NEQ:				return "NEQ";
+	case NODE_AND:				return "AND";
+	case NODE_OR:				return "OR";
+	case NODE_VAR:				return "VAR";
+	case NODE_ASSIGN:			return "ASSIGN";
+	case NODE_NOT:				return "NOT";
+	case NODE_PRINT:			return "PRINT";
+	case NODE_READ:				return "READ";
+	case NODE_RETURN:			return "RETURN";
+	case NODE_GROUP:			return "GROUP";
+	case NODE_COND:				return "COND";
+	case NODE_IF:				return "IF";
+	case NODE_ELSE:				return "ELSE";
+	case NODE_METHOD:			return "METHOD";
+	case NODE_METHOD_GROUP:		return "METHOD_GROUP";
+	case NODE_METHOD_BODY:		return "METHOD_BODY";
+	case NODE_MEMBERS:			return "MEMBERS";
+	case NODE_MAIN:				return "MAIN";
+	case NODE_CLASS:			return "CLASS";
+	case NODE_CLASS_GROUP:		return "CLASS_GROUP";
+	case NODE_PROGRAM_GROUP:	return "PROGRAM_GROUP";
+	case NODE_STMT_GROUP:		return "STMT_GROUP";
+	case NODE_VAR_GROUP:		return "VAR_GROUP";
+	case NODE_PARAM_GROUP:		return "PARAM_GROUP";
+	case NODE_BREAK:			return "BREAK";
+	case NODE_CONTINUE:			return "CONTINUE";
+	case NODE_VOID:				return "VOID";
+	case NODE_FOR:				return "FOR";
+	case NODE_LENGTH:			return "LENGTH";
+	case NODE_CALL:				return "CALL";
+	case NODE_DOT:				return "DOT";
+	case NODE_ARRAY:			return "ARRAY";
+	case NODE_ARRAY_INDEX:		return "ARRAY_INDEX";
+	case NODE_ARG_GROUP:		return "ARG_GROUP";
+	case NODE_POSTFIX:			return "POSTFIX";
+	default:					return "?";
 	}
 }
 
