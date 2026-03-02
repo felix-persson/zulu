@@ -18,7 +18,7 @@ lex.yy.c: lexer.l parser.tab.c
 	${LEX} lexer.l
 
 clean:
-	rm -f zulu ${OBJ} *.pdf parser.tab.* lex.yy.c
+	rm -f zulu ${OBJ} *.dot *.pdf parser.tab.* lex.yy.c
 
 tree:
 	dot -Tpdf tree.dot -o tree.pdf
