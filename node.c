@@ -109,7 +109,7 @@ make_class_node(node* members, char* name, int line)
     return new;
 }
 node*
-make_var_node(node* type, char* value, int line)
+make_var_node(node* type, char* value, bool is_volatile, int line)
 {
 	size_t child_count = 1;
     node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
@@ -119,7 +119,7 @@ make_var_node(node* type, char* value, int line)
         exit(1);
     }
 
-    new->type = NODE_VAR;
+    new->type = is_volatile ? NODE_VOLATILE_VAR : NODE_VAR;
 	new->children[0] = type;
 	new->line = line;
     new->value = strdup(value);
@@ -289,6 +289,7 @@ get_type(node_t t)
 	case NODE_AND:				return "AND";
 	case NODE_OR:				return "OR";
 	case NODE_VAR:				return "VAR";
+	case NODE_VOLATILE_VAR:		return "VOLATILE_VAR";
 	case NODE_ASSIGN:			return "ASSIGN";
 	case NODE_NOT:				return "NOT";
 	case NODE_PRINT:			return "PRINT";

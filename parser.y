@@ -88,7 +88,13 @@ class_member
 	;
 
 method
-	: ID '(' var_decls_opt ')' ':' type block { $$ = make_group(NODE_METHOD); $$ = group_add($$, $3); $$ = group_add($$, $6); $$ = group_add($$, $7); }
+	: ID '(' var_decls_opt ')' ':' type block {
+		$$ = make_group(NODE_METHOD);
+		$$ = group_add($$, make_vnode(NODE_ID, $1, yylineno));
+		$$ = group_add($$, $3);
+		$$ = group_add($$, $6);
+		$$ = group_add($$, $7);
+	  }
 	;
 
 var_decls_opt
@@ -146,10 +152,10 @@ cond_body
 	;
 
 var
-	: VOLATILE ID ':' type { $$ = make_var_node($4, $2, yylineno); }
-	| VOLATILE ID ':' type ASSIGN exp { $$ = make_bnode(NODE_ASSIGN, make_var_node($4, $2, yylineno), $6, yylineno); }
-	| ID ':' type { $$ = make_var_node($3, $1, yylineno); }
-	| ID ':' type ASSIGN exp { $$ = make_bnode(NODE_ASSIGN, make_var_node($3, $1, yylineno), $5, yylineno); }
+	: VOLATILE ID ':' type { $$ = make_var_node($4, $2, true, yylineno); }
+	| VOLATILE ID ':' type ASSIGN exp { $$ = make_bnode(NODE_ASSIGN, make_var_node($4, $2, true, yylineno), $6, yylineno); }
+	| ID ':' type { $$ = make_var_node($3, $1, false, yylineno); }
+	| ID ':' type ASSIGN exp { $$ = make_bnode(NODE_ASSIGN, make_var_node($3, $1, false, yylineno), $5, yylineno); }
 	;
 
 var_decls
@@ -158,7 +164,7 @@ var_decls
 	;
 
 var_decl
-	: ID ':' type { $$ = make_var_node($3, $1, yylineno); }
+	: ID ':' type { $$ = make_var_node($3, $1, false, yylineno); }
 	;
 
 assign

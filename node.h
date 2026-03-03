@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define LIST_BUFFER_SIZE 64
 
 typedef enum {
 	NODE_TYPE,
@@ -27,6 +26,7 @@ typedef enum {
 	NODE_AND,
 	NODE_OR,
 	NODE_VAR,
+	NODE_VOLATILE_VAR,
 	NODE_ASSIGN,
 	NODE_NOT,
 	NODE_PRINT,
@@ -77,7 +77,7 @@ node* group_add(node*, node*);
 node* make_vnode(node_t, char*, int);
 node* make_bnode(node_t, node*, node*, int);
 node* make_unode(node_t, node*, int);
-node* make_var_node(node*, char*, int);
+node* make_var_node(node*, char*, bool, int);
 node* make_class_node(node*, char*, int);
 node* make_type_node(node_t, char*, int);
 node* make_if_node(node*, node*, node*, int);
