@@ -15,7 +15,7 @@ class AST {
 			if (B)
 				B := true
 			else
-				A := false
+				B := false
 		}
   
 		return 1
