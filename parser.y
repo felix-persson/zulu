@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "node.h"
+#include "ast.h"
 
 extern int yylineno;
 extern int yylex(void);

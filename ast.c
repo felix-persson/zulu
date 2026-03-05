@@ -1,5 +1,5 @@
 #include <string.h>
-#include "node.h"
+#include "ast.h"
 #include "util.h"
 
 node*
