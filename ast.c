@@ -68,6 +68,7 @@ make_group(node_t type)
     return n;
 }
 
+/* TODO: this is too hacky */
 node*
 group_add(node* n, node* child)
 {
@@ -112,6 +113,18 @@ make_for_node(node* init, node* cond, node* change, node* stmts, int line)
 	n->children[1] = cond;
 	n->children[2] = change;
 	n->children[3] = stmts;
+
+    return n;
+}
+
+node*
+make_method_node(node* id, node* args, node* ret_type, node* body, int line)
+{
+	node* n = nalloc(NODE_METHOD, NULL, line, 4);
+	n->children[0] = id;
+	n->children[1] = args;
+	n->children[2] = ret_type;
+	n->children[3] = body;
 
     return n;
 }

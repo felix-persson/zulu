@@ -89,11 +89,8 @@ class_member
 
 method
 	: ID '(' var_decls_opt ')' ':' type block {
-		$$ = make_group(NODE_METHOD);
-		$$ = group_add($$, make_vnode(NODE_ID, $1, yylineno));
-		$$ = group_add($$, $3);
-		$$ = group_add($$, $6);
-		$$ = group_add($$, $7);
+		node* _id = make_vnode(NODE_ID, $1, yylineno);
+		$$ = make_method_node(_id, $3, $6, $7, yylineno);
 	  }
 	;
 

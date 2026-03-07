@@ -81,6 +81,7 @@ node* make_var_node(node*, char*, bool, int);
 node* make_class_node(node*, char*, int);
 node* make_if_node(node*, node*, node*, int);
 node* make_for_node(node*, node*, node*, node*, int);
+node* make_method_node(node*, node*, node*, node*, int);
 node* make_call_node(node*, node*, int);
 
 void generate_tree(node*, FILE*);
