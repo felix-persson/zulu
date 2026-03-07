@@ -64,7 +64,7 @@ typedef struct node node;
 
 struct node {
 	node_t type;
-	int line, id;
+	int line;
 	char* value;
 	bool is_array;
 	size_t capacity, count;
@@ -79,13 +79,12 @@ node* make_bnode(node_t, node*, node*, int);
 node* make_unode(node_t, node*, int);
 node* make_var_node(node*, char*, bool, int);
 node* make_class_node(node*, char*, int);
-node* make_type_node(node_t, char*, int);
 node* make_if_node(node*, node*, node*, int);
 node* make_for_node(node*, node*, node*, node*, int);
 node* make_call_node(node*, node*, int);
 
 void generate_tree(node*, FILE*);
 
-char *get_type(node_t);
+const char *get_type(node_t);
 
 #endif

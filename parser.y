@@ -193,7 +193,7 @@ exp
 	| '!' exp { $$ = make_unode(NODE_NOT, $2, yylineno); }
 	| '(' exp ')' { $$ = $2; }
 	| ID '[' exps ']' { node* _v = make_vnode(NODE_ID, $1, yylineno); _v->is_array = true; $$ = make_bnode(NODE_ARRAY_INDEX, _v, $3, yylineno); }
-	| primitive '[' exps ']' { node* _v = make_type_node(NODE_TYPE, $1, yylineno); _v->is_array = true; $$ = make_bnode(NODE_ARRAY_INDEX, _v, $3, yylineno); }
+	| primitive '[' exps ']' { node* _v = make_vnode(NODE_TYPE, $1, yylineno); _v->is_array = true; $$ = make_bnode(NODE_ARRAY_INDEX, _v, $3, yylineno); }
 	| postfix
 	;
 
@@ -213,10 +213,10 @@ postfix
 	;
 
 type
-	: ID { $$ = make_type_node(NODE_TYPE, $1, yylineno); }
-	| VOID_T { $$ = make_type_node(NODE_VOID, $1, yylineno); }
-	| primitive { $$ = make_type_node(NODE_TYPE, $1, yylineno); }
-	| primitive '[' ']' { $$ = make_type_node(NODE_TYPE, $1, yylineno); $$->is_array = true; }
+	: ID { $$ = make_vnode(NODE_TYPE, $1, yylineno); }
+	| VOID_T { $$ = make_vnode(NODE_VOID, $1, yylineno); }
+	| primitive { $$ = make_vnode(NODE_TYPE, $1, yylineno); }
+	| primitive '[' ']' { $$ = make_vnode(NODE_TYPE, $1, yylineno); $$->is_array = true; }
 	;
 
 primitive

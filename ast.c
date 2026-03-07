@@ -2,271 +2,166 @@
 #include "ast.h"
 #include "util.h"
 
-node*
-make_group(node_t type)
+static node*
+nalloc(node_t type, const char* value, int line, size_t capacity)
 {
-	size_t start_size = 4;
-
-	node* l = malloc(sizeof(*l) + sizeof(l->children[0]) * start_size);
-
-    if (!l) {
-        perror("Error when creating node");
-        exit(1);
-    }
-
-	l->capacity = start_size;
-	l->count = 0;
-    l->type = type;
-
-    return l;
-}
-
-
-node*
-group_add(node* l, node* child)
-{
-	if (l->count == l->capacity) {
-		l->capacity *= 2;
-		l = realloc(l, sizeof(*l) + l->capacity * sizeof(l->children[0]));
-		if (!l) {
-			perror("Error when creating node");
-			exit(1);
-		}
+	node* n = malloc(sizeof(node) + capacity * sizeof(node*));
+	if (!n) {
+		perror("malloc");
+		exit(1);
 	}
-	l->children[l->count++] = child;
+	memset(n->children, 0, capacity * sizeof(node*));
 
-	return l;
+    n->type     = type;
+    n->line     = line;
+    n->value    = value ? strdup(value) : NULL;
+    n->is_array = false;
+    n->capacity = capacity;
+    n->count    = capacity; /* may be overridden */
+
+    return n;
 }
 
-
-node*
-make_type_node(node_t type, char* value, int line)
+static int
+_generate_tree(node* n, int count, FILE* f)
 {
-    node* new = malloc(sizeof(node));
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-
-    new->type = type;
-	new->line = line;
-    new->value = strdup(value);
-
-    return new;
-}
-
-static void
-_eval_node(node* n, int* count, FILE* f)
-{
-	n->id = (*count)++;
+	int id = count++;
 	if (n->value == NULL) {
-		fprintf(f, "n%d [label=\"%s\"];\n", n->id, get_type(n->type));
+		fprintf(f, "n%d [label=\"%s\"];\n", id, get_type(n->type));
 	}
 	else {
 		if (n->is_array) {
-			fprintf(f, "n%d [label=\"ARRAY_%s:%s\"];\n", n->id, get_type(n->type), n->value);
+			fprintf(f, "n%d [label=\"ARRAY_%s:%s\"];\n",
+					id, get_type(n->type), n->value);
 		}
 		else {
-			fprintf(f, "n%d [label=\"%s:%s\"];\n", n->id, get_type(n->type), n->value);
+			fprintf(f, "n%d [label=\"%s:%s\"];\n",
+					id, get_type(n->type), n->value);
 		}
 	}
 
-	for (int i = 0; i < n->count; ++i) {
+	for (size_t i = 0; i < n->count; ++i) {
 		if (n->children[i] != NULL) {
-			_eval_node(n->children[i], count, f);
-			fprintf(f, "n%d -> n%d\n", n->id, n->children[i]->id);
+			int child_id = count;
+			count = _generate_tree(n->children[i], count, f);
+			fprintf(f, "n%d -> n%d\n", id, child_id);
 		}
 	}
+
+	return count;
 }
 
 void
 generate_tree(node* root, FILE* f)
 {
-	int count = 0;
-
 	fputs("digraph{\n", f);
-	_eval_node(root, &count, f);
+	_generate_tree(root, 0, f);
 	fputs("\n}", f);
+}
+
+node*
+make_group(node_t type)
+{
+	node* n = nalloc(type, NULL, -1, 4); /* start size = 4 */
+	n->count = 0;
+
+    return n;
+}
+
+node*
+group_add(node* n, node* child)
+{
+	if (n->count == n->capacity) {
+		n->capacity *= 2;
+		n = realloc(n, sizeof(*n) + n->capacity * sizeof(n->children[0]));
+		if (!n) {
+			perror("Error when creating node");
+			exit(1);
+		}
+	}
+	n->children[n->count++] = child;
+
+	return n;
 }
 
 node*
 make_class_node(node* members, char* name, int line)
 {
-	size_t child_count = 1;
-    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
+	node* n = nalloc(NODE_CLASS, name, line, 1);
+	n->children[0] = members;
 
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-    new->type = NODE_CLASS;
-	new->value = strdup(name);
-	new->line = line;
-	new->capacity = child_count;
-	new->count = child_count;
-	new->children[0] = members;
-
-    return new;
-}
-node*
-make_var_node(node* type, char* value, bool is_volatile, int line)
-{
-	size_t child_count = 1;
-    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
-
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-
-    new->type = is_volatile ? NODE_VOLATILE_VAR : NODE_VAR;
-	new->children[0] = type;
-	new->line = line;
-    new->value = strdup(value);
-	new->capacity = child_count;
-	new->count = child_count;
-
-    return new;
-}
-
-
-node*
-make_vnode(node_t type, char* value, int line)
-{
-    node* new = malloc(sizeof(node));
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-    new->type = type;
-	new->line = line;
-	new->id = 0;
-    new->value = strdup(value);
-	new->is_array = false;
-	new->capacity = 0;
-	new->count = 0;
-
-    return new;
-}
-
-node*
-make_bnode(node_t type, node* lhs, node* rhs, int line)
-{
-	size_t child_count = 2;
-    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
-
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-    new->type = type;
-	new->line = line;
-	new->id = 0;
-	new->value = NULL;
-	new->is_array = false;
-	new->capacity = child_count;
-	new->count = child_count;
-	new->children[0] = lhs;
-	new->children[1] = rhs;
-
-    return new;
-}
-
-node*
-make_unode(node_t type, node* operand, int line)
-{
-	size_t child_count = 1;
-    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
-
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-    new->type = type;
-	new->line = line;
-	new->id = 0;
-	new->value = NULL;
-	new->is_array = false;
-	new->capacity = child_count;
-	new->count = child_count;
-	new->children[0] = operand;
-
-    return new;
+    return n;
 }
 
 node*
 make_if_node(node* _if, node* block, node* _else, int line)
 {
-	size_t child_count = 3;
-    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
+	node* n = nalloc(NODE_IF, NULL, line, 3);
+	n->children[0] = _if;
+	n->children[1] = block;
+	n->children[2] = _else;
 
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-    new->type = NODE_IF;
-	new->line = line;
-	new->id = 0;
-	new->value = NULL;
-	new->is_array = false;
-	new->capacity = child_count;
-	new->count = child_count;
-	new->children[0] = _if;
-	new->children[1] = block;
-	new->children[2] = _else;
-
-    return new;
+    return n;
 }
 
 node*
 make_for_node(node* init, node* cond, node* change, node* stmts, int line)
 {
-	size_t child_count = 4;
-    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
+	node* n = nalloc(NODE_FOR, NULL, line, 4);
+	n->children[0] = init;
+	n->children[1] = cond;
+	n->children[2] = change;
+	n->children[3] = stmts;
 
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-    new->type= NODE_FOR;
-	new->line = line;
-	new->id = 0;
-	new->value = NULL;
-	new->is_array = false;
-	new->capacity = child_count;
-	new->count = child_count;
-	new->children[0] = init;
-	new->children[1] = cond;
-	new->children[2] = change;
-	new->children[3] = stmts;
-
-    return new;
+    return n;
 }
 
 node*
 make_call_node(node* call_node, node* args, int line)
 {
-	size_t child_count = 2;
-    node* new = malloc(sizeof(*new) + child_count * sizeof(new->children[0]));
+	node* n = nalloc(NODE_CALL, NULL, line, 2);
+	n->children[0] = call_node;
+	n->children[1] = args;
 
-    if(!new) {
-        perror("Error when creating node");
-        exit(1);
-    }
-    new->type = NODE_CALL;
-	new->line = line;
-	new->id = 0;
-	new->value = NULL;
-	new->is_array = false;
-	new->capacity = child_count;
-	new->count = child_count;
-	new->children[0] = call_node;
-	new->children[1] = args;
-
-    return new;
+    return n;
 }
 
-char*
+node*
+make_var_node(node* type, char* value, bool mutable, int line)
+{
+	node* n = nalloc(mutable ? NODE_VOLATILE_VAR : NODE_VAR, value, line, 1);
+	n->children[0] = type;
+
+    return n;
+}
+
+node*
+make_vnode(node_t type, char* value, int line)
+{
+	node* n = nalloc(type, value, line, 0);
+    return n;
+}
+
+node*
+make_bnode(node_t type, node* l, node* r, int line)
+{
+	node* n = nalloc(type, NULL, line, 2);
+	n->children[0] = l;
+	n->children[1] = r;
+
+	return n;
+}
+
+node*
+make_unode(node_t type, node* operand, int line)
+{
+	node* n = nalloc(type, NULL, line, 1);
+	n->children[0] = operand;
+
+	return n;
+}
+
+const char*
 get_type(node_t t)
 {
 	switch (t) {
@@ -324,4 +219,3 @@ get_type(node_t t)
 	default:					return "?";
 	}
 }
-
