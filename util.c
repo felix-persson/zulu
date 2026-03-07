@@ -11,3 +11,13 @@ strdup(const char* src)
 	strcpy(dst, src);
 	return dst;
 }
+
+int
+hash(char* str, int mod)
+{
+	unsigned int hash = 0;
+	while (*str) {
+		hash = (hash << 1) + *str++;
+	}
+	return hash % mod;
+}

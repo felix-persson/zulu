@@ -1,6 +1,6 @@
 include config.mk
 
-SRC = parser.tab.o lex.yy.c zulu.c ast.c util.c
+SRC = parser.tab.o lex.yy.c zulu.c ast.c util.c st.c
 OBJ = ${SRC:%.c=%.o}
 
 all: zulu

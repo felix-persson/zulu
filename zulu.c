@@ -1,14 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ast.h"
+#include "st.h"
 #include "parser.tab.h"
 
-
 extern FILE* yyin;
-
 extern int yylex(void);
 extern int yyerror(const char* s);
-
 extern node* program;
 
 int
@@ -19,9 +17,6 @@ main(int argc, char** argv)
 		if (!yyin) {
 			fprintf(stderr, "Couldn't open source file. Using stdin.\n");
 			exit(1);
-	//		do {
-	//			yyparse();
-	//		} while(!feof(yyin));
 		}
 	}
 
@@ -42,8 +37,15 @@ main(int argc, char** argv)
 	generate_tree(program, tree_f);
 	fclose(tree_f);
 
-	puts("\nBuilt a parse-tree at ./tree.dot. Use \"make tree\" to generate \
-the pdf version.");
+	puts("\nBuilt a parse-tree at ./tree.dot. Use \"make tree\" to generate"
+		 " the pdf version.");
+
+
+	/* Symbol Table construction */
+
+
+
+	st_gen(program);
 
 
 	return EXIT_SUCCESS;
